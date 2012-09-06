@@ -143,5 +143,5 @@ glu.regAdapter('fieldset', {
             }
             control.supressCollapseEvents = false;
         }
-    },
+    }
 });

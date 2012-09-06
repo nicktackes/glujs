@@ -55,12 +55,15 @@ app.get('/examples/helloworld/extjs3', function (req, res) {
 app.get('/examples/helloworld/extjs4', function (req, res) {
     res.render('helloworld.jade', {locals:{extjs_version: 4}});
 });
-//app.get('/examples/medical/extjs4', function (req, res) {
-//    res.render('medical.jade', {locals:{extjs_version:4}});
-//});
-//app.get('/examples/medical/spec', function (req, res) {
-//    res.render('medicalRunner.jade', {locals:{extjs_version:4}});
-//});
+app.get('/examples/medical/extjs4', function (req, res) {
+    res.render('medical.jade', {locals:{extjs_version:4}});
+});
+app.get('/examples/medical/touch', function (req, res) {
+    res.render('medical.jade', {locals:{extjs_version:'touch'}});
+});
+app.get('/examples/medical/spec', function (req, res) {
+    res.render('medicalRunner.jade', {locals:{extjs_version:4}});
+});
 
 //Sencha Touch (Experimental)
 app.get('/examples/senchatouch/simple/index.html',function(req,res){
@@ -76,7 +79,7 @@ app.get('/spec/touch2',function(req,res){
 });
 
 //startup
-var port = process.env.PORT || 8123;
+var port = process.env.PORT || 8125;
 app.listen(port, function () {
     console.log('GluJS development website listening on http://localhost:' + port);
 });

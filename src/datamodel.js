@@ -25,7 +25,7 @@ glu.DataModel = glu.extend(glu.Viewmodel, {
         }
 
         //load in initial values into record
-        if (Ext.getVersion().major > 3 || Ext.getProvider().provider == 'touch') {
+        if (Ext.getVersion().major > 3) {
             //TODO: Make sure we only create the models once ... fix the "rectype" system so that
             //it more closely mimics Ext 4.0 models
             var modelId = Ext.id();
@@ -36,34 +36,60 @@ glu.DataModel = glu.extend(glu.Viewmodel, {
             this.reader = new Ext.data.reader.Json({
                 model:modelId
             });
-        } else {
+        } else if (Ext.getProvider().provider == 'touch') {
+            //TODO: Make sure we only create the models once ... fix the "rectype" system so that
+            //it more closely mimics Ext 4.0 models
+            var modelId = this._private.recType;
+            var m = Ext.define(modelId, {
+                extend:'Ext.data.Model',
+                config:{fields:this._private.model.fields}
+            });
+            this.reader = new Ext.data.reader.Json({
+                model:modelId
+            }, m);
+        }
+        else {
             this.reader = new Ext.data.JsonReader({}, this._private.model.fields);
         }
         //TODO: clean this up by calling loadData instead
         //workaround for new Ext 4.1 behavior...
         var idProp = 'id';
-        if (config[idProp]===undefined) {
-            config[idProp]='';
+        if (config[idProp] === undefined) {
+            config[idProp] = '';
         }
-        var initialRecord = this.reader.readRecords([
+        var recSet = this.reader.readRecords([
             config
-        ]).records[0];
-        this._private.record = initialRecord;
-        glu.apply(this, initialRecord.data);
+        ]);
+        var initialRecord = recSet.records ? recSet.records[0] : recSet._records[0];
+        this._private.record = Ext.getProvider().provider == 'touch'?Ext.create(modelId,initialRecord):initialRecord;
+        glu.apply(this, this._private.record.data);
         this._private.data = this._private.data || {};
-        glu.apply(this._private.data, initialRecord.data);
+        glu.apply(this._private.data, this._private.record.data);
         //create isDirty formulas
 
-        this._private.record.fields.each(function (rec) {
-            var name = rec.name + 'IsDirty';
-            config [name] = {
-                on:[rec.name + 'Changed'],
-                formula:function () {
-                    return this.isModified(rec.name);
+        if (Ext.getProvider().provider == 'touch') {
+            for (var k in this._private.record.data) {
+                var name = k + 'IsDirty';
+                config [name] = {
+                    on:[k + 'Changed'],
+                    formula:function () {
+                        return this.isModified(k);
+                    }
                 }
             }
-        }, this);
 
+        }
+        else {
+            this._private.record.fields.each(function (rec) {
+                var name = rec.name + 'IsDirty';
+                config [name] = {
+                    on:[rec.name + 'Changed'],
+                    formula:function () {
+                        return this.isModified(rec.name);
+                    }
+                }
+            }, this);
+        }
         config.isDirty = false;
         //call Viewmodel constructor
         glu.DataModel.superclass.constructor.apply(this, arguments);
@@ -73,7 +99,8 @@ glu.DataModel = glu.extend(glu.Viewmodel, {
     setRaw:function (fieldName, value, suppressDirtyEvent) {
         var rec = this._private.record;
         //check if part of fields and if so, set it in the record too...
-        if (rec.fields.containsKey(fieldName)) {
+        var containsKey = Ext.getProvider().provider == 'touch' ? rec.data[fieldName] != undefined : rec.fields.containsKey(fieldName);
+        if (containsKey) {
             var wasDirty = this.isModified(fieldName);
             rec.set(fieldName, value);
             if (rec.modified && value == rec.modified[fieldName]) {
@@ -86,7 +113,8 @@ glu.DataModel = glu.extend(glu.Viewmodel, {
 
         }
         glu.DataModel.superclass.setRaw.apply(this, arguments);
-        if (rec.fields.containsKey(fieldName)) {
+        containsKey = Ext.getProvider().provider == 'touch' ? rec.data[fieldName] != undefined : rec.fields.containsKey(fieldName);
+        if (containsKey) {
             this.set('isDirty', this._private.dirtyCount > 0);
         }
     },
@@ -193,8 +221,8 @@ glu.DataModel = glu.extend(glu.Viewmodel, {
     loadData:function (rawData) {
         //workaround for new Ext 4.1 behavior...
         var idProp = 'id';
-        if (rawData[idProp]===undefined) {
-            rawData[idProp]='';
+        if (rawData[idProp] === undefined) {
+            rawData[idProp] = '';
         }
         var data = this.reader.readRecords([
             rawData

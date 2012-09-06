@@ -33,6 +33,7 @@ glu = {
         var viewSpec = this.getViewSpec(vm);
         if (glu.isString(viewSpec)) throw viewSpec;
         vm.init();
+        // for touch,
         if (asWindow) {
             if (viewSpec.asWindow) {
                 viewSpec = glu.deepApply({
@@ -518,8 +519,8 @@ glu = {
         }
         return results;
     },
-    openWindow:function (config) {
-        return glu.provider.openWindow(config);
+    openWindow:function (config, animation) {
+        return glu.provider.openWindow(config, animation);
     },
     /**
      * Creates a glu ViewPort
