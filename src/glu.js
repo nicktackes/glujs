@@ -22,18 +22,19 @@ glu = {
      * @param {Object} view model config
      * @return {Object} the created view
      */
-    createViewmodelAndView:function (config, asWindow) {
+    createViewmodelAndView:function (config, asWindow, viewMode) {
         var vm;
         if (config._private && config._private.isInstantiated) {
             vm = config;
         } else {
             vm = glu.model(config);
         }
-
-        var viewSpec = this.getViewSpec(vm);
+        var viewName = viewMode? vm.viewmodelName+'_'+viewMode : vm.viewmodelName;
+        var viewSpec = this.getViewSpec(vm, null, viewName);
         if (glu.isString(viewSpec)) throw viewSpec;
-        vm.init();
-        // for touch,
+        if (vm._private && !vm._private.isInitialized) {
+            vm.init();
+        }
         if (asWindow) {
             if (viewSpec.asWindow) {
                 viewSpec = glu.deepApply({
@@ -443,6 +444,9 @@ glu = {
     message:function (title, message, fn, scope) {
         return glu.provider.message(title, message, fn, scope);
     },
+    prompt:function (title, message, fn, scope) {
+        return glu.provider.prompt(title, message, fn, scope);
+    },
 
     /**
      * Registers a GluJS view adapter
@@ -526,8 +530,8 @@ glu = {
         }
         return results;
     },
-    openWindow:function (config, animation) {
-        return glu.provider.openWindow(config, animation);
+    openWindow:function (config, viewModel) {
+        return glu.provider.openWindow(config, viewModel);
     },
     /**
      * Creates a glu ViewPort

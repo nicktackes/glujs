@@ -50,6 +50,9 @@ Ext.apply(glu.provider, {
     message:function (title, message, fn, scope) {
         return Ext.Msg.alert(title, message, fn, scope);
     },
+    prompt:function (title, message, fn, scope){
+        return Ext.Msg.prompt(title,message,fn,scope);
+    },
 
     /* returns a viewmodel entry point as a constructor
      * and registers it with ExtJS
@@ -114,16 +117,10 @@ Ext.apply(glu.provider, {
     /*
      * 'windowizes' a panel and pops it up
      */
-    openWindow:function (config, animation) {
-        var isTouch = Ext.getProvider().provider == 'touch';
-
-        var view = glu.createViewmodelAndView(config, !isTouch);
-        if(isTouch){
-            view.setModal(true)
-            Ext.Viewport.add(view);
-        }
+    openWindow:function (config, viewMode) {
+        var view = glu.createViewmodelAndView(config, true, viewMode);
         if (glu.testMode!==true){
-            view.show(animation);
+            view.show();
         }
         return view;
     },

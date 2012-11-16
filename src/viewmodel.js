@@ -233,6 +233,7 @@ glu.Viewmodel = glu.extend(Object, {
         new glu.GraphObservable({vm:this});
         this._private.viewmodelName = config.viewmodelName;
         this._private.children = [];
+        this._private.isInitialized=false;
 
         //A view model either always has a parent or is the root. It has a parent even if "disconnected".
         //so need a different way to register disconnection than being null
@@ -240,7 +241,16 @@ glu.Viewmodel = glu.extend(Object, {
 
         delete config.viewmodelName;
 
-        this.init = config.init || function () {
+        //configure lazy initialization so children are not initialized until parent is complete
+        this.init = function () {
+            if (this._private && this._private.isInitialized) {
+                glu.log.warn('attempted to initialize an already initialized view model. Init() is a lifecycle function so please put any code you need to call multiple times elsewhere.');
+                return;
+            }
+            this._private.isInitialized=true;
+            if (config.init) {
+                config.init.apply(this,arguments);
+            }
             this.initChildren();
         };
         this.activate = config.activate || function () {
@@ -267,17 +277,23 @@ glu.Viewmodel = glu.extend(Object, {
         if (glu.testMode) {
             this.message = jasmine.createSpy('message');
             this.confirm = jasmine.createSpy('confirm');
+            this.prompt = jasmine.createSpy('prompt');
             var me = this;
-            this.confirm.respond = function(btn) {
-                //TODO: Respond to confirmations in order in case they have stacked.
-                var next = me.confirm.mostRecentCall;
-                if (next === undefined || next.args === undefined || next.args.length === 0) {
-                    throw "A confirmation was not requested"
-                }
-                next.args[0].fn.call(me,btn);
-            };
+            this.confirm.respond = function(btn,txt){me._fakeRespond('confirm',btn,txt);};
+            this.message.respond = function(btn,txt){me._fakeRespond('message',btn,txt);};
+            this.prompt.respond = function(btn,txt){me._fakeRespond('prompt',btn,txt);};
         }
         glu.log.debug('END viewmodel construction');
+    },
+
+    _fakeRespond:function(action, btn, txt) {
+        //TODO: Respond to confirmations in order in case they have stacked.
+        var next = this[action].mostRecentCall;
+        if (next === undefined || next.args === undefined || next.args.length === 0) {
+            throw action +  "was never called"
+        }
+        var fn=Ext.isString(next.args[0])?next.args[2]:next.args[0].fn;
+        fn.call(this,btn,txt);
     },
 
     /**
@@ -343,6 +359,7 @@ glu.Viewmodel = glu.extend(Object, {
         this.fireEvent(propName + 'Changed', value, oldValue, {
             modelPropName:propName
         });
+        this.fireEvent('propertychanged',propName,value,oldValue);
         if (subModel) {
             this._ob.attach(propName);
         }
@@ -559,11 +576,27 @@ glu.Viewmodel = glu.extend(Object, {
      * @param config
      * @return {*}
      */
-    model:function (config) {
+    model:function (mtype, config) {
+        //clean up arguments...
+        if (glu.isObject(mtype)) {
+            config = mtype;
+            mtype = null;
+        }
+        if (config==null){
+            config = {};
+        }
+        config.mtype=config.mtype || mtype || 'viewmodel';
+
         config.ns = this.ns;
         config.parentVM = this;
         config.rootVM = this.rootVM;
-        return glu.model(config);
+        var vm = glu.model(config);
+        //if this model is itself already initialized and the new model is initializable, init it
+        //otherwise, it will be handled through initChildren...
+        if (this._private.isInitialized && vm._private && vm.init && !vm._private.isInitialized) {
+            vm.init();
+        }
+        return vm;
     },
 
     /**
@@ -633,16 +666,33 @@ glu.Viewmodel = glu.extend(Object, {
     },
 
     /**
+     * Shortcut for a quick prompt dialog.
+     * In test mode will be replaced with a jasmine spy.
+     * @param title
+     * @param message
+     * @param fn
+     * @param scope
+     * @return {*}
+     */
+    prompt:function (title, message, fn, scope) {
+        if (glu.isObject(title)) {
+            title.scope = title.scope || this;
+        }
+        scope = scope || this;
+        return glu.prompt(title, message, fn, scope);
+    },
+
+    /**
      * Opens a view model as a popup (usually modal) dialog or pushes a screen on to a mobile navigation stack.
      * @param config
      * A normal config block that you would pass into glu.model, only in this case it also displays the view model in a window.
      * In test mode it instantiates the new view model but does not instantiate the view.
      * @return {*}
      */
-    open:function (config, animation) {
+    open:function (config, viewMode) {
         config.ns = config.ns || this.ns;
         config.parentVM = config.parentVM || this;
-        var win = glu.openWindow(config, animation);
+        var win = glu.openWindow(config, viewMode);
         return win._bindings.viewmodel;
     },
 
@@ -659,7 +709,9 @@ glu.Viewmodel = glu.extend(Object, {
         for (var i =0;i<this._private.children.length;i++){
             var child = this[this._private.children[i]];
             if(!glu.isFunction(child.init))continue;
-            child.init();
+            if (!child._private.isInitialized) {
+                child.init();
+            }
         }
     },
 

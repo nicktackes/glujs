@@ -56,7 +56,7 @@ Ext.onReady(function(){glu.viewport('helloworld.main');});
 
 If you really just want the minified libraries, grab them here:
 
-[http://www.conarrative.com/download/glujs-1.0.0.zip](http://www.conarrative.com/download/glujs-1.0.0.zip)
+[http://www.conarrative.com/download/glujs-1.2.0.zip](http://www.conarrative.com/download/glujs-1.2.0.zip)
 
 If you want the source and full examples, clone this project from github.
 
@@ -88,7 +88,7 @@ We currently support the following:
 
 and will shortly target Titanium.
 
-After you build GluJS, uou can run directly from the fileysystem since we leverage GluJS's ability to mock back-end Ajax calls.
+After you build GluJS, you can run directly from the fileysystem since we leverage GluJS's ability to mock back-end Ajax calls.
 For instance, to run the 'agents' example:
 
     file:///Users/mikegai/Projects/gluJS/examples/agents/index.html
