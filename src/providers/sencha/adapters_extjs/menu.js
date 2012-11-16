@@ -2,8 +2,8 @@
  * class glu.extjs.adapters.menu
  * @extends glu.extjs.adapters.panel
  */
-glu.regAdapter('menu' ,{
-    extend : 'panel',
+glu.regAdapter('menu', {
+    extend:'panel',
     defaultTypes:{
         items:'menuitem'
     },
@@ -19,12 +19,24 @@ glu.regAdapter('menu' ,{
  * @extends glu.extjs.adapters.component
  */
 glu.regAdapter('menuitem', {
-    extend : 'component',
+    extend:'component',
+    afterCreate:function (control, viewmodel) {
+        glu.provider.adapters.Component.prototype.afterCreate.apply(this, arguments);
+        if (control.mouseoverActivation) {
+            control.on('render', function () {
+                control.getEl().on('mouseover', function () {
+                    if (control.handler) {
+                        control.handler()
+                    }
+                });
+            });
+        }
+    },
 
-    applyConventions: function(config, viewmodel) {
-        Ext.applyIf (config, {
-            handler : glu.conventions.expression(config.name,{up:true}),
-            text : glu.conventions.asLocaleKey(config.name)
+    applyConventions:function (config, viewmodel) {
+        Ext.applyIf(config, {
+            handler:glu.conventions.expression(config.name, {up:true}),
+            text:glu.conventions.asLocaleKey(config.name)
         });
         glu.provider.adapters.Component.prototype.applyConventions.apply(this, arguments);
     },
@@ -38,15 +50,15 @@ glu.regAdapter('menuitem', {
         eventConverter:function (item, checked) {
             return checked;
         },
-        setComponentProperty : function(value, oldValue, options, control) {
-            control.setChecked(value,true);//suppress event
+        setComponentProperty:function (value, oldValue, options, control) {
+            control.setChecked(value, true);//suppress event
         }
     },
-    isChildObject : function(propName){
-        return propName==='menu';
+    isChildObject:function (propName) {
+        return propName === 'menu';
     },
 
-    menuShortcut : function(value) {
+    menuShortcut:function (value) {
         return {
             xtype:'menu',
             defaultType:'menuitem',
